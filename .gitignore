@@ -1,4 +1,6 @@
 .venv/
+flickr8k
+coco_dataset/
 
 *.jpg
 *.png
