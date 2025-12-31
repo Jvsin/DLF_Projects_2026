@@ -1,5 +1,5 @@
 .venv/
-flickr8k
+flickr8k_dataset
 coco_dataset/
 
 *.jpg

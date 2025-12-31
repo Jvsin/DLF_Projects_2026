@@ -1,3 +1,7 @@
+ .venv\Scripts\activate
+
+Image Caption
+
 DANE TRENINGOWE:
 
 50% poprawne
@@ -31,4 +35,12 @@ Oryginał: "Dog chasing a cat."
 
 Fake: "Cat chasing a dog."
 
+
+zbiór danych flick_training_data.csv:
+positive                40455
+easy_neg                40455
+hard_neg_color_swap     13710
+hard_neg_entity_swap    11711
+hard_neg_number_swap     6378
+hard_neg_digit_swap        67
 
