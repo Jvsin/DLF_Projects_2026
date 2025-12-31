@@ -1,0 +1,34 @@
+DANE TRENINGOWE:
+
+50% poprawne
+50% negatywne
+
+z czego negatywne: 
+- 50% easy -> losowa podmianka opisu obrazu, zupełnie nie związana z obrazkiem
+- 50% hard -> zmiana szczegółów:
+
+Zamiana atrybutów: Znajdź przymiotniki (np. kolory) i podmień je na inne.
+
+Oryginał: "A red car on the street."
+
+Fake: "A blue car on the street."
+
+Zamiana liczebników: Znajdź liczby i zmień je.
+
+Oryginał: "Three birds sitting on a branch."
+
+Fake: "Two birds sitting on a branch."
+
+Zamiana obiektów/rzeczowników: Podmień rzeczownik na inny z tej samej kategorii (używając WordNet lub wektorów słów).
+
+Oryginał: "A man holding a cat."
+
+Fake: "A man holding a dog."
+
+Zamiana relacji: (Dla zaawansowanych) Zamiana podmiotu z dopełnieniem.
+
+Oryginał: "Dog chasing a cat."
+
+Fake: "Cat chasing a dog."
+
+
