@@ -44,3 +44,23 @@ hard_neg_entity_swap    11711
 hard_neg_number_swap     6378
 hard_neg_digit_swap        67
 
+
+Hadamard Product
+
+Przykład: pozycja nr 5 w wektorze odpowiada za cechę "kolor czerwony".
+Jeśli obraz ma czerwień (wartość wysoka, np. 0.9) i tekst mówi o czerwieni (wartość wysoka, np. 0.9) 
+0.9 * 0.9 = 0.81 (Mocny sygnał).
+
+Jeśli obraz ma czerwień (0.9), ale tekst mówi "niebieski" (wartość dla czerwieni niska, np. -0.5)
+0.9 * 0.5 = -0.45 (Sygnał konfliktu/negacji).
+
+Dlaczego nie dodawanie? Dodawanie jest "zbyt łagodne". 
+Mnożenie działa jak bramka logiczna AND – obie strony muszą się zgadzać, żeby sygnał przeszedł dalej. 
+To kluczowe przy wykrywaniu fałszu.
+
+
+
+PYTANIA:
+- jak zapisywać najlepszy model?
+- czy architektura jest dobra i czy akceptowalna pod kątem wymagań projektu.
+- spytać o dane w datasecie
