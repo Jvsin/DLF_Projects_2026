@@ -4,3 +4,4 @@ coco_dataset/
 
 *.jpg
 *.png
+*.pth
