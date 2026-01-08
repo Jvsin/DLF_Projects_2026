@@ -1,6 +1,7 @@
 .venv/
 flickr8k_dataset
 coco_dataset/
+project_1/__pycache__
 
 *.jpg
 *.png

@@ -64,3 +64,9 @@ PYTANIA:
 - jak zapisywać najlepszy model?
 - czy architektura jest dobra i czy akceptowalna pod kątem wymagań projektu.
 - spytać o dane w datasecie
+
+plateau
+odmrażać po pewnym czzasie gdy nie spada loss
+fine tuning
+usunąć kropki
+

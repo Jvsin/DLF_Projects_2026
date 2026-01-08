@@ -20,13 +20,23 @@ except OSError:
 
 class DataAdversary:
     def __init__(self):
-        self.colors = ["red", "blue", "green", "yellow", "black", "white", "purple", "orange", "pink", "brown"]
+        self.colors = ["red", "blue", "green", "yellow", "black", "white", "purple", "orange", "pink", "brown", "tan", "grey", "gray", "golden", "beige"]
         self.numbers = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
         self.numbers_digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         self.people_map = {
             "boy": "girl", "girl": "boy",
+            "boys": "girls", "girls": "boys",
             "man": "woman", "woman": "man",
-            "dog": "cat", "cat": "dog"
+            "men": "women", "women": "men",
+            "child": "kid", "kid": "child",
+            "children": "kids", "kids": "children",
+            "lady": "gentleman", "gentleman": "lady",
+            "toddler": "infant", "infant": "toddler",
+            "dog": "cat", "cat": "dog",
+            "dogs": "cats", "cats": "dogs",
+            "puppy": "kitten", "kitten": "puppy",
+            "horse": "cow", "cow": "horse",
+            "bird": "duck", "duck": "bird"
         }
 
     def replace_word(self, text, original_word, possible_replacements):
@@ -34,10 +44,44 @@ class DataAdversary:
         if not choices: return text
         new_word = random.choice(choices)
         return text.replace(original_word, new_word)
+    
+    def fix_verb_agreement(self, text, old_word, new_word):
+        """Poprawia formy czasowników po zamianie liczby pojedynczej/mnogiej"""
+        
+        singular_words = ["boy", "girl", "man", "woman", "child", "kid", "dog", "cat", "horse", "cow", "bird", "duck", "puppy", "kitten", "lady", "gentleman", "toddler", "infant"]
+        plural_words = ["boys", "girls", "men", "women", "children", "kids", "dogs", "cats", "horses", "cows", "birds", "ducks", "puppies", "kittens", "ladies", "gentlemen", "toddlers", "infants"]
+        
+        old_is_singular = old_word in singular_words
+        new_is_singular = new_word in singular_words
+        
+        # Jeśli zmieniamy z liczby mnogiej na pojedynczą
+        if not old_is_singular and new_is_singular:
+            text = text.replace(" are ", " is ")
+            text = text.replace(" have ", " has ")
+            text = text.replace(" play ", " plays ")
+            text = text.replace(" run ", " runs ")
+            text = text.replace(" jump ", " jumps ")
+            text = text.replace(" walk ", " walks ")
+            text = text.replace(" sit ", " sits ")
+            text = text.replace(" stand ", " stands ")
+            text = text.replace(" wear ", " wears ")
+        # Jeśli zmieniamy z liczby pojedynczej na mnogą
+        elif old_is_singular and not new_is_singular:
+            text = text.replace(" is ", " are ")
+            text = text.replace(" has ", " have ")
+            text = text.replace(" plays ", " play ")
+            text = text.replace(" runs ", " run ")
+            text = text.replace(" jumps ", " jump ")
+            text = text.replace(" walks ", " walk ")
+            text = text.replace(" sits ", " sit ")
+            text = text.replace(" stands ", " stand ")
+            text = text.replace(" wears ", " wear ")
+        
+        return text
 
     def generate_hard_negative(self, caption):
         doc = nlp(caption.lower()) 
-        original_text = caption
+        original_text = caption.rstrip('.')
         
         # Zamiana kolorów
         for token in doc:
@@ -58,7 +102,10 @@ class DataAdversary:
         for token in doc:
             if token.text in self.people_map:
                 new_word = self.people_map[token.text]
-                return original_text.replace(token.text, new_word), "entity_swap"
+                modified_text = original_text.replace(token.text, new_word)
+                # Poprawka gramatyki dla czasowników - trzecia osoba liczby pojedynczej
+                modified_text = self.fix_verb_agreement(modified_text, token.text, new_word)
+                return modified_text, "entity_swap"
 
         return None, None
 
@@ -80,7 +127,7 @@ def process_flickr():
 
     for index, row in tqdm(df_raw.iterrows(), total=len(df_raw)):
         image_name = row['image']
-        caption = str(row['caption'])
+        caption = str(row['caption']).rstrip('.')
         
         full_image_path = os.path.join(IMAGES_DIR, image_name)
         
