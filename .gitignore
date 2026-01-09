@@ -2,7 +2,8 @@
 flickr8k_dataset
 coco_dataset/
 project_1/__pycache__
-
+.vector_cache/
+src/__pycache__/
 *.jpg
 *.png
 *.pth
