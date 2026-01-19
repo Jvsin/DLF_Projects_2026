@@ -103,7 +103,7 @@ def main():
         
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), "best_model_local.pth")
+            torch.save(model.state_dict(), "best_model_local_2.pth")
             print(f"--> Zapisano model (Acc: {best_acc:.4f})")
 
     # Wykres na koniec

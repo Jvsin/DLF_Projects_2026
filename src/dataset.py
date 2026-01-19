@@ -59,32 +59,23 @@ class FlickrDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.vocab = vocab
-        
-        self.positives = self.df[self.df['label'] == 1].reset_index(drop=True)
-        self.negatives = self.df[self.df['label'] == 0].reset_index(drop=True)
-        self.dataset_len = len(self.positives) * 2
+        # Nie dzielimy już na positives/negatives ręcznie w __init__
+        # Ufamy, że CSV jest dobrze zbalansowany (lub zbalansujemy go samplerem)
 
     def __len__(self):
-        return self.dataset_len
+        return len(self.df)
 
     def __getitem__(self, idx):
-        if idx % 2 == 0:
-            pos_idx = (idx // 2) % len(self.positives)
-            row = self.positives.iloc[pos_idx]
-            label = 1.0
-        else:
-            row = self.negatives.sample(n=1).iloc[0]
-            label = 0.0
-
-        img_path_raw = row['image_path']
+        row = self.df.iloc[idx]
         
+        # Ładujemy obraz wskazany w TYM KONKRETNYM wierszu
+        img_path_raw = row['image_path']
         img_name = os.path.basename(img_path_raw.replace('\\', '/'))
         img_path = os.path.join(self.root_dir, img_name)
 
         try:
             image = Image.open(img_path).convert("RGB")
         except Exception:
-            # print(f"Warning: Brak pliku {img_path}, generuję czarny obraz.")
             image = Image.new('RGB', (Config.IMG_SIZE, Config.IMG_SIZE), 'black')
 
         if self.transform:
@@ -93,6 +84,9 @@ class FlickrDataset(Dataset):
         caption_vec = [self.vocab.stoi["<SOS>"]]
         caption_vec += self.vocab.numericalize(row['caption'])
         caption_vec.append(self.vocab.stoi["<EOS>"])
+
+        # Pobieramy label bezpośrednio z wiersza
+        label = float(row['label'])
 
         return {
             "image": image,

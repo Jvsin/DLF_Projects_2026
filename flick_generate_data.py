@@ -5,7 +5,7 @@ import os
 from tqdm import tqdm
 
 
-BASE_DIR = 'flickr8k_dataset'
+BASE_DIR = 'data/flickr8k_dataset'
 IMAGES_DIR = os.path.join(BASE_DIR, 'Images')
 CAPTIONS_FILE = os.path.join(BASE_DIR, 'captions.txt')
 
@@ -79,24 +79,33 @@ class DataAdversary:
         
         return text
 
-    def generate_hard_negative(self, caption):
+    def generate_hard_negative(self, caption, max_attempts=10):
         doc = nlp(caption.lower()) 
         original_text = caption.rstrip('.')
         
         # Zamiana kolorów
         for token in doc:
             if token.text in self.colors:
-                return self.replace_word(original_text, token.text, self.colors), "color_swap"
+                for attempt in range(max_attempts):
+                    result = self.replace_word(original_text, token.text, self.colors)
+                    if result != original_text:
+                        return result, "color_swap"
 
         # Zamiana ilości
         for token in doc:
             if token.text in self.numbers:
-                return self.replace_word(original_text, token.text, self.numbers), "number_swap"
+                for attempt in range(max_attempts):
+                    result = self.replace_word(original_text, token.text, self.numbers)
+                    if result != original_text:
+                        return result, "number_swap"
         
         # Zamiana cyfr
         for token in doc:
             if token.text in self.numbers_digits:
-                return self.replace_word(original_text, token.text, self.numbers_digits), "digit_swap"
+                for attempt in range(max_attempts):
+                    result = self.replace_word(original_text, token.text, self.numbers_digits)
+                    if result != original_text:
+                        return result, "digit_swap"
                 
         # Zamiana przedmiotów / ludzi / zwierząt
         for token in doc:
@@ -105,7 +114,8 @@ class DataAdversary:
                 modified_text = original_text.replace(token.text, new_word)
                 # Poprawka gramatyki dla czasowników - trzecia osoba liczby pojedynczej
                 modified_text = self.fix_verb_agreement(modified_text, token.text, new_word)
-                return modified_text, "entity_swap"
+                if modified_text != original_text:
+                    return modified_text, "entity_swap"
 
         return None, None
 
@@ -144,7 +154,7 @@ def process_flickr():
         # Generowanie negatywów hard
         fake_caption, error_type = adversary.generate_hard_negative(caption)
         
-        if fake_caption:
+        if fake_caption and fake_caption != caption:
             dataset.append({
                 'image_path': full_image_path,
                 'caption': fake_caption,
