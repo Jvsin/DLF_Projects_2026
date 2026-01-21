@@ -8,14 +8,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from src.config import Config
-from src.utils import download_spacy_model, load_glove_embeddings
+from src.utils import load_glove_embeddings
 from src.dataset import FlickrDataset, Vocabulary, MyCollate
 from src.model import CrossModalNetwork
 from src.train import train_epoch, evaluate
 
 def main():
-    # 1. Inicjalizacja środowiska
-    download_spacy_model()
+    # download_spacy_model()
     
     # 2. Transformacje
     transforms_train = transforms.Compose([
@@ -26,18 +25,19 @@ def main():
         transforms.Normalize(Config.MEAN, Config.STD)
     ])
 
-    # 3. Budowa słownika
     print("Budowanie słownika...")
     if not os.path.exists(Config.CSV_FILE):
         raise FileNotFoundError(f"Brak pliku CSV w {Config.CSV_FILE}")
-        
+    
     raw_df = pd.read_csv(Config.CSV_FILE)
     all_captions = raw_df['caption'].tolist()
     vocab = Vocabulary(freq_threshold=2)
     vocab.build_vocabulary(all_captions)
     print(f"Rozmiar słownika: {len(vocab)}")
 
-    # 4. Dataset
+    print("Zapisywanie słownika do vocab.pth (dla submission)...")
+    torch.save({'stoi': vocab.stoi}, "vocab.pth")
+
     dataset = FlickrDataset(
         csv_file=Config.CSV_FILE,
         root_dir=Config.IMG_DIR,
@@ -103,10 +103,9 @@ def main():
         
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), "best_model_local_2.pth")
+            torch.save(model.state_dict(), "weights.pth")
             print(f"--> Zapisano model (Acc: {best_acc:.4f})")
 
-    # Wykres na koniec
     plt.plot(history['train_loss'], label='Loss')
     plt.plot(history['val_acc'], label='Val Acc')
     plt.legend()

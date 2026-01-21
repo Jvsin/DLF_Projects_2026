@@ -1,21 +1,12 @@
 import os
+import re
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from PIL import Image
 from collections import Counter
-import spacy
 from .config import Config
-
-# Ładowanie spacy globalnie (po sprawdzeniu w utils)
-def load_spacy():
-    try:
-        return spacy.load("en_core_web_sm")
-    except:
-        return None
-
-spacy_eng = load_spacy() 
 
 class Vocabulary:
     def __init__(self, freq_threshold=2):
@@ -28,12 +19,8 @@ class Vocabulary:
 
     @staticmethod
     def tokenizer_eng(text):
-        global spacy_eng
-        if spacy_eng is None:
-            spacy_eng = load_spacy()
-            if spacy_eng is None:
-                raise RuntimeError("Model spacy nie został załadowany.")
-        return [tok.text.lower() for tok in spacy_eng.tokenizer(text)]
+        text = text.lower()
+        return re.findall(r"[\w]+|[^\s\w]", text)
 
     def build_vocabulary(self, sentence_list):
         frequencies = Counter()
@@ -59,23 +46,32 @@ class FlickrDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.vocab = vocab
-        # Nie dzielimy już na positives/negatives ręcznie w __init__
-        # Ufamy, że CSV jest dobrze zbalansowany (lub zbalansujemy go samplerem)
+        
+        self.positives = self.df[self.df['label'] == 1].reset_index(drop=True)
+        self.negatives = self.df[self.df['label'] == 0].reset_index(drop=True)
+        self.dataset_len = len(self.positives) * 2
 
     def __len__(self):
-        return len(self.df)
+        return self.dataset_len
 
     def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        
-        # Ładujemy obraz wskazany w TYM KONKRETNYM wierszu
+        if idx % 2 == 0:
+            pos_idx = (idx // 2) % len(self.positives)
+            row = self.positives.iloc[pos_idx]
+            label = 1.0
+        else:
+            row = self.negatives.sample(n=1).iloc[0]
+            label = 0.0
+
         img_path_raw = row['image_path']
+        # Obsługa ścieżek Windows/Linux
         img_name = os.path.basename(img_path_raw.replace('\\', '/'))
         img_path = os.path.join(self.root_dir, img_name)
 
         try:
             image = Image.open(img_path).convert("RGB")
         except Exception:
+            # Fallback na czarny obraz w razie błędu pliku
             image = Image.new('RGB', (Config.IMG_SIZE, Config.IMG_SIZE), 'black')
 
         if self.transform:
@@ -84,9 +80,6 @@ class FlickrDataset(Dataset):
         caption_vec = [self.vocab.stoi["<SOS>"]]
         caption_vec += self.vocab.numericalize(row['caption'])
         caption_vec.append(self.vocab.stoi["<EOS>"])
-
-        # Pobieramy label bezpośrednio z wiersza
-        label = float(row['label'])
 
         return {
             "image": image,

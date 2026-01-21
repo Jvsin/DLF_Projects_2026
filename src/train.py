@@ -7,7 +7,6 @@ def train_epoch(model, loader, optimizer, criterion, device):
     correct = 0
     total = 0
     
-    # tqdm z file=None domyślnie leci na stderr, co jest ok w terminalu
     loop = tqdm(loader, leave=False, desc="Training")
     
     for imgs, caps, labels in loop:
