@@ -67,7 +67,6 @@ def main():
         pin_memory=True
     )
 
-    # 5. Model
     glove_matrix = load_glove_embeddings(vocab, embedding_dim=Config.EMBED_DIM)
     
     model = CrossModalNetwork(
@@ -78,12 +77,10 @@ def main():
         pretrained_embeddings=glove_matrix
     ).to(Config.DEVICE)
 
-    # 6. Setup treningu
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2)
 
-    # 7. Pętla
     best_acc = 0.0
     history = {'train_loss': [], 'val_acc': []}
     

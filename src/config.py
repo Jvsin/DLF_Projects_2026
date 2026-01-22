@@ -3,7 +3,7 @@ import os
 
 class Config:
     DATA_DIR = 'data'
-    CSV_FILE = os.path.join(DATA_DIR, 'flickr8k_training_data.csv')
+    CSV_FILE = os.path.join(DATA_DIR, 'captions_flickr8k_model_optimal.csv')
     IMG_DIR = os.path.join(DATA_DIR, 'flickr8k_dataset', 'Images')
     GLOVE_DIR = '.vector_cache'
     
@@ -13,10 +13,10 @@ class Config:
     VISUAL_EMBED_DIM = 512
     
     # Parametry Treningu
-    BATCH_SIZE = 32
+    BATCH_SIZE = 64
     LEARNING_RATE = 1e-4
     WEIGHT_DECAY = 1e-4
-    EPOCHS = 15
+    EPOCHS = 12
     NUM_WORKERS = 4
     
     # Obraz

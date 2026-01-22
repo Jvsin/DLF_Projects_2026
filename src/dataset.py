@@ -1,12 +1,11 @@
 import os
-import re
-import pandas as pd
 import torch
+import pandas as pd
+from PIL import Image
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
-from PIL import Image
+import re
 from collections import Counter
-from .config import Config
 
 class Vocabulary:
     def __init__(self, freq_threshold=2):
@@ -19,24 +18,28 @@ class Vocabulary:
 
     @staticmethod
     def tokenizer_eng(text):
-        text = text.lower()
-        return re.findall(r"[\w]+|[^\s\w]", text)
+        # Używamy regex, żeby było spójnie z modelem w submission (bez spacy)
+        return re.findall(r"[\w]+|[^\s\w]", str(text).lower())
 
     def build_vocabulary(self, sentence_list):
         frequencies = Counter()
         idx = 4
+        
+        print("Budowanie słownika...")
         for sentence in sentence_list:
             for word in self.tokenizer_eng(sentence):
                 frequencies[word] += 1
+                
                 if frequencies[word] == self.freq_threshold:
                     self.stoi[word] = idx
                     self.itos[idx] = word
                     idx += 1
+        print(f"Rozmiar słownika: {len(self.itos)} słów")
 
     def numericalize(self, text):
         tokenized_text = self.tokenizer_eng(text)
         return [
-            self.stoi[token] if token in self.stoi else self.stoi["<UNK>"]
+            self.stoi.get(token, self.stoi["<UNK>"])
             for token in tokenized_text
         ]
 
@@ -47,44 +50,38 @@ class FlickrDataset(Dataset):
         self.transform = transform
         self.vocab = vocab
         
-        self.positives = self.df[self.df['label'] == 1].reset_index(drop=True)
-        self.negatives = self.df[self.df['label'] == 0].reset_index(drop=True)
-        self.dataset_len = len(self.positives) * 2
+        if 'label' not in self.df.columns:
+            raise ValueError("Plik CSV musi zawierać kolumnę 'label' (0 lub 1)!")
 
     def __len__(self):
-        return self.dataset_len
+        return len(self.df)
 
     def __getitem__(self, idx):
-        if idx % 2 == 0:
-            pos_idx = (idx // 2) % len(self.positives)
-            row = self.positives.iloc[pos_idx]
-            label = 1.0
-        else:
-            row = self.negatives.sample(n=1).iloc[0]
-            label = 0.0
-
-        img_path_raw = row['image_path']
-        # Obsługa ścieżek Windows/Linux
-        img_name = os.path.basename(img_path_raw.replace('\\', '/'))
+        row = self.df.iloc[idx]
+        
+        img_name = os.path.basename(row['image_path'])
         img_path = os.path.join(self.root_dir, img_name)
-
+        
         try:
             image = Image.open(img_path).convert("RGB")
-        except Exception:
-            # Fallback na czarny obraz w razie błędu pliku
-            image = Image.new('RGB', (Config.IMG_SIZE, Config.IMG_SIZE), 'black')
+        except (FileNotFoundError, OSError):
+            # Fallback dla uszkodzonych/brakujących zdjęć (żeby nie wywaliło treningu)
+            image = Image.new('RGB', (224, 224), 'black')
 
         if self.transform:
             image = self.transform(image)
 
-        caption_vec = [self.vocab.stoi["<SOS>"]]
-        caption_vec += self.vocab.numericalize(row['caption'])
-        caption_vec.append(self.vocab.stoi["<EOS>"])
+        caption = row['caption']
+        numericalized_caption = [self.vocab.stoi["<SOS>"]]
+        numericalized_caption += self.vocab.numericalize(caption)
+        numericalized_caption.append(self.vocab.stoi["<EOS>"])
+
+        label = float(row['label'])
 
         return {
-            "image": image,
-            "caption": torch.tensor(caption_vec),
-            "label": torch.tensor(label, dtype=torch.float)
+            'image': image,
+            'caption': torch.tensor(numericalized_caption),
+            'label': torch.tensor(label, dtype=torch.float)
         }
 
 class MyCollate:
@@ -94,7 +91,10 @@ class MyCollate:
     def __call__(self, batch):
         imgs = [item['image'].unsqueeze(0) for item in batch]
         imgs = torch.cat(imgs, dim=0)
+
         targets = [item['caption'] for item in batch]
         targets = pad_sequence(targets, batch_first=True, padding_value=self.pad_idx)
-        labels = torch.tensor([item['label'] for item in batch])
+
+        labels = torch.tensor([item['label'] for item in batch], dtype=torch.float)
+
         return imgs, targets, labels
