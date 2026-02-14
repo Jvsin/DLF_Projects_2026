@@ -14,9 +14,6 @@ from src.model import CrossModalNetwork
 from src.train import train_epoch, evaluate
 
 def main():
-    # download_spacy_model()
-    
-    # 2. Transformacje
     transforms_train = transforms.Compose([
         transforms.Resize((Config.IMG_SIZE, Config.IMG_SIZE)),
         transforms.RandomHorizontalFlip(),
@@ -25,18 +22,21 @@ def main():
         transforms.Normalize(Config.MEAN, Config.STD)
     ])
 
-    print("Budowanie słownika...")
+    print("Przygotowanie słownika...")
     if not os.path.exists(Config.CSV_FILE):
         raise FileNotFoundError(f"Brak pliku CSV w {Config.CSV_FILE}")
-    
-    raw_df = pd.read_csv(Config.CSV_FILE)
-    all_captions = raw_df['caption'].tolist()
-    vocab = Vocabulary(freq_threshold=2)
-    vocab.build_vocabulary(all_captions)
-    print(f"Rozmiar słownika: {len(vocab)}")
 
-    print("Zapisywanie słownika do vocab.pth (dla submission)...")
-    torch.save({'stoi': vocab.stoi}, "vocab.pth")
+    if not os.path.exists("vocab.pth"):
+        raise FileNotFoundError("Brak vocab.pth. Użyj istniejącego słownika lub wskaż poprawną ścieżkę.")
+
+    vocab_data = torch.load("vocab.pth", map_location="cpu")
+    if not (isinstance(vocab_data, dict) and "stoi" in vocab_data):
+        raise ValueError("vocab.pth ma niepoprawny format. Oczekiwano klucza 'stoi'.")
+
+    vocab = Vocabulary(freq_threshold=2)
+    vocab.stoi = vocab_data["stoi"]
+    vocab.itos = {idx: token for token, idx in vocab.stoi.items()}
+    print(f"Załadowano istniejący słownik (rozmiar: {len(vocab)})")
 
     dataset = FlickrDataset(
         csv_file=Config.CSV_FILE,
@@ -76,6 +76,10 @@ def main():
         visual_dim=Config.VISUAL_EMBED_DIM,
         pretrained_embeddings=glove_matrix
     ).to(Config.DEVICE)
+
+    if os.path.exists(Config.RESUME_WEIGHTS):
+        model.load_state_dict(torch.load(Config.RESUME_WEIGHTS, map_location=Config.DEVICE))
+        print(f"Załadowano wagi z {Config.RESUME_WEIGHTS}")
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)

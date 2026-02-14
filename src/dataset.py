@@ -18,7 +18,6 @@ class Vocabulary:
 
     @staticmethod
     def tokenizer_eng(text):
-        # Używamy regex, żeby było spójnie z modelem w submission (bez spacy)
         return re.findall(r"[\w]+|[^\s\w]", str(text).lower())
 
     def build_vocabulary(self, sentence_list):
